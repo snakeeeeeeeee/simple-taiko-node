@@ -1,0 +1,171 @@
+version: "3.4"
+x-logging: &logging
+  logging:
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  l2_execution_engine2:
+    image: gcr.io/evmchain/taiko-geth:katla
+    restart: unless-stopped
+    pull_policy: always
+    stop_grace_period: 3m
+    volumes:
+      - l2_execution_engine_data2:/data/taiko-geth
+    ports:
+      - "${PORT_L2_EXECUTION_ENGINE_HTTP2}:12110"
+      - "${PORT_L2_EXECUTION_ENGINE_WS2}:12111"
+      - "${PORT_L2_EXECUTION_ENGINE_METRICS2}:12112"
+      - "${PORT_L2_EXECUTION_ENGINE_P2P2}:12113"
+      - "${PORT_L2_EXECUTION_ENGINE_P2P2}:12113/udp"
+    command:
+      - --taiko
+      - --networkid
+      - "${CHAIN_ID}"
+      - --syncmode
+      - full
+      - --gcmode
+      - archive
+      - --datadir
+      - /data/taiko-geth
+      - --metrics
+      - --metrics.expensive
+      - --metrics.addr
+      - "0.0.0.0"
+      - --bootnodes
+      - ${BOOT_NODES}
+      - --authrpc.addr
+      - "0.0.0.0"
+      - --authrpc.vhosts
+      - "*"
+      - --http
+      - --http.api
+      - debug,eth,net,web3,txpool,taiko
+      - --http.addr
+      - "0.0.0.0"
+      - --http.vhosts
+      - "*"
+      - --ws
+      - --ws.api
+      - debug,eth,net,web3,txpool,taiko
+      - --ws.addr
+      - "0.0.0.0"
+      - --ws.origins
+      - "*"
+    <<: *logging
+
+  taiko_client_driver2:
+    image: gcr.io/evmchain/taiko-client:katla
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - l2_execution_engine2
+    env_file:
+      - .env
+    volumes:
+      - l2_execution_engine_data2:/data/taiko-geth
+      - ./script:/script
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/script/start-driver.sh"
+    <<: *logging
+
+  taiko_client_prover_relayer2:
+    image: gcr.io/evmchain/taiko-client:katla
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - l2_execution_engine2
+      - taiko_client_driver2
+      - zkevm_chain_prover_rpcd2
+    ports:
+      - "${PORT_PROVER_SERVER2}:12114"
+    env_file:
+      - .env
+    volumes:
+      - ./script:/script
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/script/start-prover-relayer.sh"
+    <<: *logging
+
+  taiko_client_proposer2:
+    image: gcr.io/evmchain/taiko-client:katla
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - l2_execution_engine2
+      - taiko_client_driver2
+    env_file:
+      - .env
+    volumes:
+      - ./script:/script
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/script/start-proposer.sh"
+    <<: *logging
+
+  zkevm_chain_prover_rpcd2:
+    image: gcr.io/evmchain/katla-proverd:latest
+    restart: unless-stopped
+    pull_policy: always
+    env_file:
+      - .env
+    volumes:
+      - ./script:/script
+      - zkevm_chain_prover_rpcd_data2:/data
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/script/start-zkevm-chain-rpcd.sh"
+    deploy:
+      replicas: ${ZKEVM_CHAIN_INSTANCES_NUM:-1}
+      resources:
+        limits:
+          memory: 32G
+    <<: *logging
+
+  prometheus2:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - ${PORT_PROMETHEUS2}:12115
+    depends_on:
+      - l2_execution_engine2
+      - taiko_client_driver2
+    volumes:
+      - ./docker/prometheus/l2:/etc/prometheus
+      - prometheus_data2:/prometheus
+    command:
+      - --log.level=debug
+      - --config.file=/etc/prometheus/prometheus.yml
+    <<: *logging
+
+  grafana2:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - ${PORT_GRAFANA2}:12116
+    depends_on:
+      - l2_execution_engine2
+      - taiko_client_driver2
+      - prometheus2
+    environment:
+      - GF_PATHS_CONFIG=/etc/grafana/custom/settings.ini
+      - GF_PATHS_PROVISIONING=/etc/grafana/custom/provisioning
+      - GF_LOG_LEVEL=WARN
+    volumes:
+      - ./docker/grafana/custom/settings.ini:/etc/grafana/custom/settings.ini
+      - ./docker/grafana/custom/l2/provisioning/:/etc/grafana/custom/provisioning/
+      - grafana_data2:/var/lib/grafana
+    <<: *logging
+
+volumes:
+  l2_execution_engine_data2:
+  zkevm_chain_prover_rpcd_data2:
+  prometheus_data2:
+  grafana_data2:
