@@ -36,8 +36,8 @@ if [ ! -f .env ]; then
 fi
 
 # 提示用户输入环境变量的值
-l1_endpoint_http=https://ethereum-holesky.blockpi.network/v1/rpc/95900baa68b1912c8e645c02548d0d318db68b42
-l1_endpoint_ws=wss://ethereum-holesky.blockpi.network/v1/ws/95900baa68b1912c8e645c02548d0d318db68b42
+l1_endpoint_http=http://95.111.243.106:8545
+l1_endpoint_ws=ws://95.111.243.106:8546
 #read -p "请输入BlockPI holesky HTTP链接: " l1_endpoint_http
 #read -p "请输入BlockPI holesky WS链接: " l1_endpoint_ws
 # 提示用户输入环境变量的值
