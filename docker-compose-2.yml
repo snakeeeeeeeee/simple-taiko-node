@@ -14,11 +14,11 @@ services:
     volumes:
       - l2_execution_engine_data2:/data/taiko-geth
     ports:
-      - "${PORT_L2_EXECUTION_ENGINE_HTTP2}:6060"
-      - "${PORT_L2_EXECUTION_ENGINE_WS2}:8545"
-      - "${PORT_L2_EXECUTION_ENGINE_METRICS2}:8546"
-      - "${PORT_L2_EXECUTION_ENGINE_P2P2}:30303"
-      - "${PORT_L2_EXECUTION_ENGINE_P2P2}:30303/udp"
+      - "12110:6060"
+      - "12111:8545"
+      - "12112:8546"
+      - "12113:30303"
+      - "12113:30303/udp"
     command:
       - --taiko
       - --networkid
@@ -81,7 +81,7 @@ services:
       - taiko_client_driver2
       - zkevm_chain_prover_rpcd2
     ports:
-      - "${PORT_PROVER_SERVER2}:9876"
+      - "12114:9876"
     env_file:
       - .env
     volumes:
@@ -133,12 +133,12 @@ services:
     image: prom/prometheus:latest
     restart: unless-stopped
     ports:
-      - ${PORT_PROMETHEUS2}:9090
+      - 12115:9090
     depends_on:
       - l2_execution_engine2
       - taiko_client_driver2
     volumes:
-      - ./docker/prometheus/l2:/etc/prometheus
+      - ./docker/prometheus2/l2:/etc/prometheus
       - prometheus_data2:/prometheus
     command:
       - --log.level=debug
@@ -149,7 +149,7 @@ services:
     image: grafana/grafana:latest
     restart: unless-stopped
     ports:
-      - ${PORT_GRAFANA2}:3000
+      - 12116:3000
     depends_on:
       - l2_execution_engine2
       - taiko_client_driver2
@@ -159,8 +159,8 @@ services:
       - GF_PATHS_PROVISIONING=/etc/grafana/custom/provisioning
       - GF_LOG_LEVEL=WARN
     volumes:
-      - ./docker/grafana/custom/settings.ini:/etc/grafana/custom/settings.ini
-      - ./docker/grafana/custom/l2/provisioning/:/etc/grafana/custom/provisioning/
+      - ./docker/grafana2/custom/settings.ini:/etc/grafana/custom/settings.ini
+      - ./docker/grafana2/custom/l2/provisioning/:/etc/grafana/custom/provisioning/
       - grafana_data2:/var/lib/grafana
     <<: *logging
 
