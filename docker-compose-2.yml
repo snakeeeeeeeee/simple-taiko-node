@@ -138,7 +138,7 @@ services:
       - l2_execution_engine2
       - taiko_client_driver2
     volumes:
-      - ./docker/prometheus2/l2:/etc/prometheus
+      - ./docker/prometheus/l2:/etc/prometheus
       - prometheus_data2:/prometheus
     command:
       - --log.level=debug
@@ -159,8 +159,8 @@ services:
       - GF_PATHS_PROVISIONING=/etc/grafana/custom/provisioning
       - GF_LOG_LEVEL=WARN
     volumes:
-      - ./docker/grafana2/custom/settings.ini:/etc/grafana/custom/settings.ini
-      - ./docker/grafana2/custom/l2/provisioning/:/etc/grafana/custom/provisioning/
+      - ./docker/grafana/custom/settings.ini:/etc/grafana/custom/settings.ini
+      - ./docker/grafana/custom/l2/provisioning/:/etc/grafana/custom/provisioning/
       - grafana_data2:/var/lib/grafana
     <<: *logging
 
