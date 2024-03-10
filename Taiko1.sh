@@ -30,8 +30,6 @@ function check_and_set_alias() {
 # 节点安装功能
 function install_node() {
 
-# 进入 Taiko 目录
-cd $HOME/simple-taiko-node
 
 # 如果不存在.env文件，则从示例创建一个
 if [ ! -f .env ]; then
