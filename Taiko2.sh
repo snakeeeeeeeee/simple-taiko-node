@@ -2,7 +2,6 @@
 
 # 脚本保存路径
 SCRIPT_PATH="$HOME/Taiko.sh"
-
 # 自动设置快捷键的功能
 function check_and_set_alias() {
     local alias_name="taiko"
@@ -31,25 +30,8 @@ function check_and_set_alias() {
 # 节点安装功能
 function install_node() {
 
-# 更新系统包列表
-sudo apt update
-
-# 检查 Git 是否已安装
-if ! command -v git &> /dev/null
-then
-    # 如果 Git 未安装，则进行安装
-    echo "未检测到 Git，正在安装..."
-    sudo apt install git -y
-else
-    # 如果 Git 已安装，则不做任何操作
-    echo "Git 已安装。"
-fi
-
-# 克隆 Taiko 仓库
-git clone https://github.com/taikoxyz/simple-taiko-node.git
-
 # 进入 Taiko 目录
-cd simple-taiko-node
+cd $HOME/simple-taiko-node
 
 # 如果不存在.env文件，则从示例创建一个
 if [ ! -f .env ]; then
@@ -57,8 +39,10 @@ if [ ! -f .env ]; then
 fi
 
 # 提示用户输入环境变量的值
-read -p "请输入BlockPI holesky HTTP链接: " l1_endpoint_http
-read -p "请输入BlockPI holesky WS链接: " l1_endpoint_ws
+l1_endpoint_http=https://ethereum-holesky.blockpi.network/v1/rpc/95900baa68b1912c8e645c02548d0d318db68b42
+l1_endpoint_ws=wss://ethereum-holesky.blockpi.network/v1/ws/95900baa68b1912c8e645c02548d0d318db68b42
+#read -p "请输入BlockPI holesky HTTP链接: " l1_endpoint_http
+#read -p "请输入BlockPI holesky WS链接: " l1_endpoint_ws
 # 提示用户输入环境变量的值
 read -p "请输入EVM钱包私钥: " l1_proposer_private_key
 enable_proposer=true
@@ -128,78 +112,32 @@ sed -i "s|PROVER_ENDPOINTS=.*|PROVER_ENDPOINTS=http://taiko-a6-prover.zkpool.io|
 # 用户信息已配置完毕
 echo "用户信息已配置完毕。"
 
-# 升级所有已安装的包
-sudo apt upgrade -y
-
-# 安装基本组件
-sudo apt install pkg-config curl build-essential libssl-dev libclang-dev ufw -y
-
-# 检查 Docker 是否已安装
-if ! command -v docker &> /dev/null
-then
-    # 如果 Docker 未安装，则进行安装
-    echo "未检测到 Docker，正在安装..."
-    sudo apt-get install ca-certificates curl gnupg lsb-release
-
-    # 添加 Docker 官方 GPG 密钥
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-    # 设置 Docker 仓库
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    # 授权 Docker 文件
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    sudo apt-get update
-
-    # 安装 Docker 最新版本
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
-else
-    echo "Docker 已安装。"
-fi
-
-# 检查 Docker Compose 是否已安装
-if ! command -v docker-compose &> /dev/null
-then
-    echo "未检测到 Docker Compose，正在安装..."
-    sudo apt install docker-compose -y
-else
-    echo "Docker Compose 已安装。"
-fi
-
-# 验证 Docker Engine 安装是否成功
-sudo docker run hello-world
-# 应该能看到 hello-world 程序的输出
-
-# 检查 Docker Compose 版本
-docker-compose -v
 
 # 运行 Taiko 节点
-docker-compose -f docker-compose-1.yaml -f docker-compose-2.yaml up
+docker-compose -f docker-compose-2.yaml up
 
 # 获取公网 IP 地址
 public_ip=$(curl -s ifconfig.me)
 
 # 准备原始链接
-original_url1="LocalHost:11116/d/L2ExecutionEngine/l2-execution-engine-overview?orgId=1&refresh=10s"
 original_url2="LocalHost:12116/d/L2ExecutionEngine/l2-execution-engine-overview?orgId=1&refresh=10s"
 
 # 替换 LocalHost 为公网 IP 地址
-updated_url1=$(echo original_url1 | sed "s/LocalHost/$public_ip/")
-updated_url2=$(echo original_url2 | sed "s/LocalHost/$public_ip/")
+updated_url1=$(echo original_url2 | sed "s/LocalHost/$public_ip/")
 
 # 显示更新后的链接
-echo "请通过以下链接查询设备运行情况，如果无法访问，请等待2-3分钟后重试：$updated_url1"
-echo "请通过以下链接查询设备运行情况，如果无法访问，请等待2-3分钟后重试：$updated_url2"
+echo "请通过以下链接查询设备运行情况，如果无法访问，请等待2-3分钟后重试：$original_url2"
 
 }
 
 # 查看节点日志
 function check_service_status() {
-    cd simple-taiko-node
-    docker compose logs -f
+    docker-compose -f docker-compose-2.yml logs -f
+}
+
+# 重启
+function restart() {
+    docker-compose -f docker-compose-2.yml restart
 }
 
 
@@ -215,12 +153,14 @@ function main_menu() {
     echo "1. 安装节点"
     echo "2. 查看节点日志"
     echo "3. 设置快捷键的功能"
-    read -p "请输入选项（1-3）: " OPTION
+    echo "4. 重启"
+    read -p "请输入选项（1-4）: " OPTION
 
     case $OPTION in
     1) install_node ;;
     2) check_service_status ;;
     3) check_and_set_alias ;;
+    4) restart ;;
     *) echo "无效选项。" ;;
     esac
 }
