@@ -112,7 +112,7 @@ echo "用户信息已配置完毕。"
 
 
 # 运行 Taiko 节点
-docker-compose -f docker-compose-1.yaml up
+docker-compose -f docker-compose-1.yml up
 
 # 获取公网 IP 地址
 public_ip=$(curl -s ifconfig.me)
